@@ -1,0 +1,166 @@
+---
+
+- name: ezjail test
+  hosts: all
+  become: yes
+  become_user: root
+  become_method: sudo
+  gather_facts: False
+
+  vars:
+    ansible_connection: paramiko
+    ansible_python_interpreter: /usr/local/bin/python2.7
+
+
+  tasks:
+    # quick setup the test environment
+
+    - name: Install python with raw as ansible relies on it
+      raw: 'env ASSUME_ALWAYS_YES\=yes pkg install -y python'
+
+    - name: install ezjail
+      pkgng: name=ezjail state=present
+
+    - name: start ezjail
+      service: name=ezjail state=started enabled=yes
+
+    - name: install basejail
+      raw: ls /usr/jails/basejail || ezjail-admin install
+
+    # manage some jails
+
+    - name: test1 create jail
+      ezjail: name=test1 state=started ip_addr=lo0|127.0.0.1
+      register: result
+
+    - name: test1 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test1 created and started' == result.msg"
+
+    - name: test2 delete jail
+      ezjail: name=test1 state=absent
+      register: result
+
+    - name: test2 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test1 deleted' == result.msg"
+
+    - name: test3 start jail 2
+      ezjail: name=test2 state=stopped ip_addr=lo0|127.0.0.1
+      register: result
+
+    - name: test3 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test2 created' == result.msg"
+
+    - name: test4 stop jail 2
+      ezjail: name=test2 state=stopped
+      register: result
+
+    - name: test4 assert
+      assert:
+        that:
+          - "not result.changed"
+          - "'Jail test2 not changed' == result.msg"
+
+    - name: test5 start jail
+      ezjail: name=test2 state=started
+      register: result
+
+    - name: test5 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test2 started' == result.msg"
+
+    - name: test6 start jail
+      ezjail: name=test2 state=started ip_addr=lo0|127.0.0.2
+      register: result
+
+    - name: test6 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test2 ip_addr updated' == result.msg"
+
+    - name: test7 start jail 2
+      ezjail: name=test2 state=started
+      register: result
+
+    - name: test7 assert
+      assert:
+        that:
+          - "not result.changed"
+          - "'Jail test2 not changed' == result.msg"
+
+    - name: test8 start jail 2
+      ezjail: name=test2 state=started enabled=no
+      register: result
+
+    - name: test8 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test2 disabled' == result.msg"
+
+
+    - name: test9 start jail 2
+      ezjail: name=test2 state=stopped enabled=no
+      register: result
+
+    - name: test9 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test2 stopped' == result.msg"
+
+
+    - name: test10 delete jail 2
+      ezjail: name=test2 state=absent
+      register: result
+
+    - name: test10 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test2 deleted' == result.msg"
+
+    - name: test11 create jail 3
+      ezjail: name=some-+crazy_.name state=started ip_addr=127.0.0.1
+      register: result
+
+    - name: test11 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail some-+crazy_.name created and started' == result.msg"
+
+
+    - name: test12 update jail 3
+      ezjail: name=some-+crazy_.name state=started ip_addr=127.0.0.2
+      register: result
+
+    - name: test12 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail some-+crazy_.name ip_addr updated' == result.msg"
+
+    - name: test13 delete jail 3
+      ezjail: name=some-+crazy_.name state=absent
+      register: result
+
+    - name: test12 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail some-+crazy_.name deleted' == result.msg"
+
+
+
