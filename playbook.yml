@@ -15,152 +15,383 @@
   tasks:
     # quick setup the test environment
 
-    - name: Install python with raw as ansible relies on it
-      raw: 'env ASSUME_ALWAYS_YES\=yes pkg install -y python'
-
-    - name: install ezjail
-      pkgng: name=ezjail state=present
-
-    - name: start ezjail
-      service: name=ezjail state=started enabled=yes
-
-    - name: install basejail
-      raw: ls /usr/jails/basejail || ezjail-admin install
-
+#    - name: Install python with raw as ansible relies on it
+#      raw: 'env ASSUME_ALWAYS_YES\=yes pkg install -y python'
+#
+#    - name: install ezjail
+#      pkgng: name=ezjail state=present
+#
+#    - name: start ezjail
+#      service: name=ezjail state=started enabled=yes
+#
+#    - name: install basejail
+#      raw: ls /usr/jails/basejail || ezjail-admin install
+#
     # manage some jails
 
     - name: test1 create jail
       ezjail: name=test1 state=started ip_addr=lo0|127.0.0.1
       register: result
 
-    - name: test1 assert
+    - name: test1 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test2 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
+
+    - name: test1 assert return values
       assert:
         that:
           - "result.changed"
           - "'Jail test1 created and started' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*127.0.0.1[ ]*test1[ ]*/usr/jails/test1')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test1\\r\\n')"
 
     - name: test2 delete jail
       ezjail: name=test1 state=absent
       register: result
+
+    - name: test2 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test2 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test2 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test1 deleted' == result.msg"
+          - "state.stdout_lines|length == 2"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail\\r\\n')"
 
     - name: test3 start jail 2
       ezjail: name=test2 state=stopped ip_addr=lo0|127.0.0.1
       register: result
+
+    - name: test3 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test3 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test3 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test2 created' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('D[ ]*[0-9]*[ ]*lo1|127.0.0.1[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test4 stop jail 2
       ezjail: name=test2 state=stopped
       register: result
+
+    - name: test4 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test4 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test4 assert
       assert:
         that:
           - "not result.changed"
           - "'Jail test2 not changed' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('D[ ]*[0-9]*[ ]*lo1|127.0.0.1[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test5 start jail
       ezjail: name=test2 state=started
       register: result
+
+    - name: test5 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test5 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test5 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test2 started' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*lo1|127.0.0.1[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test6 start jail
       ezjail: name=test2 state=started ip_addr=lo0|127.0.0.2
       register: result
+
+    - name: test6 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test6 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test6 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test2 ip_addr updated' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*lo0|127.0.0.2[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test7 start jail 2
       ezjail: name=test2 state=started
       register: result
+
+    - name: test7 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test7 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test7 assert
       assert:
         that:
           - "not result.changed"
           - "'Jail test2 not changed' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*lo0|127.0.0.2[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test8 start jail 2
       ezjail: name=test2 state=started enabled=no
       register: result
+
+    - name: test8 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test8 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test8 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test2 disabled' == result.msg"
-
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DRN[ ]*[0-9]*[ ]*lo0|127.0.0.2[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test9 start jail 2
       ezjail: name=test2 state=stopped enabled=no
       register: result
+
+    - name: test9 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test9 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test9 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test2 stopped' == result.msg"
-
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DN[ ]*[0-9]*[ ]*lo0|127.0.0.2[ ]*test2[ ]*/usr/jails/test2')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test2\\r\\n')"
 
     - name: test10 delete jail 2
       ezjail: name=test2 state=absent
       register: result
+
+    - name: test10 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test10 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test10 assert
       assert:
         that:
           - "result.changed"
           - "'Jail test2 deleted' == result.msg"
+          - "state.stdout_lines|length == 2"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail\\r\\n')"
 
     - name: test11 create jail 3
       ezjail: name=some-+crazy_.name state=started ip_addr=127.0.0.1
       register: result
+
+    - name: test11 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test11 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test11 assert
       assert:
         that:
           - "result.changed"
           - "'Jail some-+crazy_.name created and started' == result.msg"
-
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*127.0.0.1[ ]*some-\\+crazy_\\.name[ ]*/usr/jails/some-\\+crazy_\\.name')"
+          - "jailroot.stdout|search('basejail[\\t|\\r\\n]*newjail[\\t|\\r\\n]*flavours[\\t|\\r\\n]*some-\\+crazy_\\.name\\r\\n')"
 
     - name: test12 update jail 3
       ezjail: name=some-+crazy_.name state=started ip_addr=127.0.0.2
       register: result
+
+    - name: test12 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test12 check jailroot deleted
+      raw: ls /usr/jails
+      register: jailroot
 
     - name: test12 assert
       assert:
         that:
           - "result.changed"
           - "'Jail some-+crazy_.name ip_addr updated' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*127.0.0.2[ ]*some-\\+crazy_\\.name[ ]*/usr/jails/some-\\+crazy_\\.name')"
+          - "jailroot.stdout|search('basejail[\\t|\\r\\n]*newjail[\\t|\\r\\n]*flavours[\\t|\\r\\n]*some-\\+crazy_\\.name\\r\\n')"
 
     - name: test13 delete jail 3
       ezjail: name=some-+crazy_.name state=absent
       register: result
 
-    - name: test12 assert
+    - name: test13 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test13 check jailroot
+      raw: ls /usr/jails
+      register: jailroot
+
+    - name: test13 assert
       assert:
         that:
           - "result.changed"
           - "'Jail some-+crazy_.name deleted' == result.msg"
+          - "state.stdout_lines|length == 2"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail\\r\\n')"
+
+
+    - name: test14 create check mode
+      ezjail: name=test4 state=started ip_addr=127.0.0.1
+      register: result
+      check_mode: yes
+
+    - name: test14 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test14 check jailroot
+      raw: ls /usr/jails
+      register: jailroot
+
+    - name: test14 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test4 would have been created and started' == result.msg"
+          - "state.stdout_lines|length == 2"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail\\r\\n')"
+
+    - name: test15 create jail for delete check mode
+      ezjail: name=test4 state=started ip_addr=127.0.0.1
+
+    - name: test15 delete check mode
+      ezjail: name=test4 state=absent
+      register: result
+      check_mode: yes
+
+    - name: test15 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test15 check jailroot
+      raw: ls /usr/jails
+      register: jailroot
+
+    - name: test15 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test4 would have been deleted' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*127.0.0.1[ ]*test4[ ]*/usr/jails/test4')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test4\\r\\n')"
+
+    - name: test16 delete check mode
+      ezjail: name=test4 state=stopped ip_addr=127.1.1.1 enabled=no
+      register: result
+      check_mode: yes
+
+    - name: test16 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test16 check jailroot
+      raw: ls /usr/jails
+      register: jailroot
+
+    - name: test16 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test4 would have been ip_addr updated and stopped and disabled' == result.msg"
+          - "state.stdout_lines|length == 3"
+          - "state.stdout_lines[2]|search('DR[ ]*[0-9]*[ ]*127.0.0.1[ ]*test4[ ]*/usr/jails/test4')"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail[\\t]*test4\\r\\n')"
+
+    - name: test17 cleanup
+      ezjail: name=test4 state=absent
+      register: result
+
+    - name: test17 check jail state
+      raw: ezjail-admin list
+      register: state
+
+    - name: test17 check jailroot
+      raw: ls /usr/jails
+      register: jailroot
+
+    - name: test17 assert
+      assert:
+        that:
+          - "result.changed"
+          - "'Jail test4 deleted' == result.msg"
+          - "state.stdout_lines|length == 2"
+          - "jailroot.stdout|search('basejail[\\t]*flavours[\\t]*newjail\\r\\n')"
+
+
+
+
+
 
 
 
