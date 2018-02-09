@@ -356,7 +356,7 @@ def main():
     module = AnsibleModule(**MODULE_SPECS)
     state = module.params['state']
     try:
-        if state in ['stopped', 'started']:
+        if state in ['stopped', 'started', 'restarted']:
             result = create(module)
         elif state == 'absent':
             result = delete(module)
