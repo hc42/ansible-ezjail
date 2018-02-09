@@ -309,7 +309,7 @@ def create(module):
         if not module.check_mode:
             if (is_started and state == 'restarted') or state == 'stopped':
                 start_or_stop(module, 'stopped')
-            if state == 'started':
+            if state == 'started' or state == 'restarted':
                 start_or_stop(module, 'started')
 
     # set enabled / runnable state
